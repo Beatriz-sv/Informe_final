@@ -1,0 +1,279 @@
+---
+title: "Análisis de la Producción Mundial de Electricidad"
+author: "Beatriz Salas"
+date: "`r format(Sys.time(), '%d-%m-%Y')`"
+output: 
+  bookdown::pdf_document2:
+    fig.caption: yes
+    toc: no
+bibliography: Biblio.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, tidy = TRUE)
+library(tidyverse)
+library(broom)
+library(kableExtra)
+options("kableExtra.html.bsTable" = T)
+```
+
+```{r, echo=FALSE}
+Energy_stat <- read_csv("https://ia801502.us.archive.org/33/items/all_energy_statistics/all_energy_statistics.csv")
+```
+
+# Introducción
+
+La energía es un elemento central del desarrollo de la humanidad, siendo vital para las economías industrializadas, pero también permitiendo la generación de avances económicos y sociales en las regiones en desarrollo.  En la sociedad moderna, la energía cumple un papel vital al permitir el funcionamiento de todos los sistemas que cubren las necesidades humanas, como la alimentación, el trabajo y transporte, etc. [@development2004world]
+
+El panorama de la energía mundial requiere de transformaciones fundamentales. Las necesidades energéticas a escala mundial continúan aumentando, existiendo una dependencia instalada por los combustibles fósiles. La energía renovable desempeña un papel cada vez más importante en el proceso de ayudar a los países a desarrollar sistemas energéticos modernos y seguros. [@development2004world]
+
+Debido a lo anterior, conocer el panorama energético de los distintos países y regiones a nivel mundial es un asunto de mayor importancia. Diversos informes realizados por organismos relacionados pueden ayudar a llevar a cabo análisis profundos y completos para dilucidar el escenario energético actual y plantear perspectivas a nivel mundial.
+
+La base de datos de estadísticas de energía, publicada por la División de Estadística de las Naciones Unidas, contiene una completa información estadística sobre la producción, el comercio, la conversión y el consumo final de fuentes de energía primarias y secundarias; convencionales y no convencionales; y fuentes de energía nuevas y renovables. En particular, una parte de la base de datos contiene información sobre las transacciones de energía eléctrica de los países o áreas, recopilando detalles acerca de su producción, comercio y consumo, además de la capacidad de producción instalada neta e insumos y eficiencias de las centrales eléctricas.
+
+La electricidad corresponde a una de las formas de energía más versátiles teniendo un sinnúmero de aplicaciones las que sustentan un porcentaje importante de las sociedades modernas. [@jones1991electrical]  Esta se puede generar a través de diferentes procesos tales como: la conversión de la energía contenida en el agua que cae o fluye, el viento o las olas; la conversión directa de la radiación solar mediante procesos fotovoltaicos en dispositivos semiconductores (celdas solares), o mediante la generación de calor obtenido por la combustión de combustibles, entre otros procesos. [@guidelines2015energy] Actualmente el carbón es el combustible más generalizado para la producción mundial de electricidad. [@facts2006edition]
+
+En este trabajo se realizó un análisis de la producción de electricidad a partir de distintas fuentes de energía. En primera instancia se hizo un análisis a un nivel general, para todos los países o áreas durante el periodo total de recopilación de los datos, pero también a nivel más detallado, para un grupo de países que mostraron mayores fluctuaciones en las cantidades de electricidad producida para cada una de las fuentes usadas. Posteriormente, los análisis se centraron en el uso particular de la energía eólica como una fuente de energía renovable y beneficiosa respecto a las fuentes convencionales. Todo lo anterior con el fin de identificar variaciones y tendencias en la proporción en que se ha estado usando cada fuente de energía para la producción total de electricidad en los distintos países analizados. Con esto se espera observar una tendencia al aumento en la producción de electricidad a partir de fuentes renovables como la energía eólica, lo que refleje una mayor conciencia de la importancia del cambio en las fuentes usadas y la disminución de la dependencia por los combustibles fósiles y otras fuentes menos favorables para el medio ambiente. 
+
+
+#	Metodología
+
+```{r echo=FALSE}
+country_or_area <- c(length(unique(Energy_stat$country_or_area)))
+commodity_transaction <- (length(unique(Energy_stat$commodity_transaction))) 
+
+```
+
+```{r tabla1, echo=FALSE}
+kable(head(Energy_stat), booktabs = T, align = c("c","c","c","c","c","c"), caption = "Tabla demostrativa del Data Frame usado para los análisis. Se incluye solo nombre de las columnas y primeras filas como ejemplo de la información recopilada.") %>% kable_styling(latex_options = c("striped", "scale_down", "hover"))
+```
+
+Los análisis realizados se hicieron a partir de la base de datos obtenida desde Kaggle; “International Energy Statistics” Producción y comercio mundial de energía 1990-2014 [(International Energy Statistics)](https://www.kaggle.com/unitednations/international-energy-statistics), la cual contiene información de `r country_or_area` países o áreas (“country_or_area”) para los cuales se detallan `r commodity_transaction` tipos de transacciones de productos básicos (“commodity_transaction”), el año en que se contabilizó esa transacción (“year”), y la cantidad transada (“quantity”) con sus correspondientes unidades de medida (“unit”) y categoría a la que pertenece (“category”). Todos estos datos se incorporaron en un Data Frame (Tabla \@ref(tab:tabla1)) que consta de columnas con los nombres especificados en paréntesis.
+
+
+El procesamiento y análisis de la información obtenida a partir de esta base de datos se realizó mediante el uso de R y RStudio, y la utilización de los paquetes "tidyverse" y los contenidos por este; "dplyr", "readr" y "tidyr", además de "ggplot" para la construcción de gráficos. Adicionalmente se ocupó el paquete "rmarkdown" y "tinytex" para elaborar este documento de reporte y "kableExtra" para construir las tablas presentadas.
+
+```{r, echo=FALSE}
+Energy_stat25 <- Energy_stat %>% 
+dplyr::group_by(country_or_area, year) %>% 
+count(year) %>% 
+  dplyr::group_by(country_or_area) %>% 
+  count(country_or_area) %>% 
+  dplyr::filter(n == 25)
+```
+
+```{r, echo=FALSE}
+Energy_stat25_complete <-dplyr::left_join(Energy_stat25, Energy_stat, by = "country_or_area") %>% 
+  dplyr::select(-quantity_footnotes) %>% 
+  dplyr::group_by(country_or_area) %>% 
+  dplyr::arrange(year)%>% 
+  dplyr::select(-n) 
+```
+
+```{r, echo=FALSE}
+country_or_area_n <- c(length(unique(Energy_stat25_complete$country_or_area)))
+```
+
+Los análisis se hicieron considerando solo los países que entregaron información durante el periodo completo de recopilación de los datos, es decir que entregan información en al menos un tipo de transacción de productos básicos (“commodity_transaction”) durante todos los años, lo que redujo los países o áreas del Data Frame a un número de `r country_or_area_n` en total. Adicionalmente, se eliminó una columna que solo detallaba la existencia de notas respecto la cantidad tabulada (“quantity_footnotes”), ya que no entregaba información relevante. 
+A partir de este Data Frame se realizó el filtro principal para dejar solo la información relativa a la producción de electricidad. Así solo se conservaron las “commodity_transaction” que consideraban la producción bruta y producción neta de electricidad, como también la cantidad de electricidad de acuerdo al tipo de productor según fuese su actividad principal o fuesen autoproductores, y por último en función del tipo de fuente de energía utilizada para la producción (Termoelectricidad, hidroelectricidad, electricidad geotérmica, electricidad solar; fotovoltaica y solar térmica, electricidad mareomotriz y de las olas, y  electricidad eólica). A partir de estos datos se realizó la totalidad de los análisis relacionados con la producción general acumulada para todos los países, para el conjunto particular de países seleccionados, y para la observación de tendencias en el uso de energía eólica como una fuente particular usada para la producción de electricidad. 
+
+
+
+# Resultados
+
+
+## Análisis general de la producción de energía eléctrica a nivel mundial
+
+```{r, echo=FALSE}
+Electricity_Production1 <- Energy_stat25_complete %>% 
+  dplyr::group_by(commodity_transaction) %>% 
+  dplyr::filter(grepl('Electricity',commodity_transaction)) %>% 
+  dplyr::filter(grepl('production',commodity_transaction)) %>% 
+  dplyr::mutate(across(.cols= "quantity", .fns = sum)) %>% 
+  dplyr::group_by(commodity_transaction,unit) %>% 
+  dplyr::count(quantity) %>% 
+  dplyr::select(-n) 
+```
+
+```{r, echo=FALSE}
+Electricity_Production2 <- Electricity_Production1 %>% 
+  dplyr::mutate(percent = ((quantity/Electricity_Production1[1,3])*100)) %>% 
+  dplyr::mutate_at(vars(percent), funs(round(., 3)))
+```
+```{r, echo=FALSE}
+x <- c("Electricity - Gross production", "Electricity - net production", "Electricity - total production, main activity", "Electricity - total production, autoproducer", "Electricity - total thermal production", "Electricity - total hydro production", "Electricity - total nuclear production", "Electricity - total wind production", "Electricity - total geothermal production", "Electricity - total solar production", "Electricity - total tide, wave production")
+
+Electricity_Production3 <- Electricity_Production2 %>%
+  mutate(commodity_transaction =  factor(commodity_transaction, levels = x)) %>%
+  arrange(commodity_transaction)
+```
+
+```{r, echo=FALSE}
+percents <- unique(Electricity_Production3$percent)
+```
+
+La tabla \@ref(tab:tabla2) muestra la estimación del acumulado de electricidad producida durante todo el periodo estudiado considerando la totalidad de los países o regiones. Con esta información se calculó la contribución (porcentaje) de cada fuente en la producción de energía eléctrica, respecto a la producción bruta total ("Gross production"), correspondiente a la suma de todas las unidades/instalaciones de generación. Por su parte, la producción eléctrica neta (“net production”) corresponde a un `r percents[2,1]` % del total, ya que considera la producción eléctrica bruta menos la energía eléctrica absorbida por los auxiliares de generación y las pérdidas en los transformadores principales de los generadores. De acuerdo con la clasificación según el tipo de productor se tiene que un `r percents[3,1]`% corresponde a energía producida por empresas dedicadas a la producción de electricidad como actividad principal (“main activity”), dejando un `r percents[4,1]`% dado por empresas donde esta producción no corresponde a su actividad principal (“autoproducer”). 
+
+En cuanto a las fuentes de energía usadas para la producción de electricidad, se comprueba que las energías convencionales, como las usadas en las plantas termoeléctricas (“thermal”) e hidroeléctricas (“hidro”) son las que mayoritariamente explican la producción total, aportando con un `r percents[5,1]`% y `r percents[6,1]` %, respectivamente.
+
+
+```{r tabla2, echo=FALSE}
+kable(Electricity_Production3, booktabs = T, align = c("c","c","c","c"), caption = "Producción de energía eléctrica a partir de distintas fuentes.") %>% kable_styling(latex_options = c("striped", "scale_down"))
+```
+
+```{r, echo=FALSE}
+Elec_Production_split <- Energy_stat25_complete %>% 
+  dplyr::filter(grepl('Electricity',commodity_transaction)) %>% 
+  dplyr::filter(grepl('production',commodity_transaction)) %>% 
+  dplyr::group_by(commodity_transaction, add= TRUE) %>% 
+  dplyr::group_split(commodity_transaction) %>% 
+  map(~(arrange(.x, year))) %>% 
+  map(~(mutate(.x, lag_quantity = lag(quantity)))) %>% 
+  map(~(mutate(.x, delta_quantity = quantity-lag_quantity))) %>% 
+  bind_rows() %>% 
+  dplyr::select(-"category")
+
+Max_increase <- Elec_Production_split %>% 
+  dplyr::group_by(commodity_transaction) %>% 
+  dplyr::slice_max(order_by = delta_quantity, n = 1)
+
+Max_decrease <- Elec_Production_split %>% 
+  dplyr::group_by(commodity_transaction) %>% 
+  dplyr::slice_min(order_by = delta_quantity, n = 1)
+```
+
+Como una manera de identificar países que tengan comportamientos interesantes de examinar respecto a las fuentes de energía que usan para la producción de electricidad, se calculó la variable de cambio por años para cada tipo de energía, de manera de reconocer países que hayan experimentado fluctuaciones importantes, ya sea un mayor aumento o una mayor disminución, en la cantidad de electricidad producida para cada una de estas fuentes. Los resultados de estos análisis se muestran en las tablas \@ref(tab:tabla3) y \@ref(tab:tabla4). Países como China y Estados Unidos al ser productores de grandes volúmenes de electricidad aparecen también con mayores fluctuaciones en la producción bruta y neta. De manera interesante, en cuanto a las energías no convencionales, Francia muestra el mayor aumento en el uso de energía mareomotriz en el año 2014, y por su parte Indonesia en el uso de energía geotérmica en el año 2001. Por otro lado, respecto a las mayores disminuciones, destacan la caída en el uso de energía eólica por parte de India en el año 2014, y en el uso de energía nuclear por parte de Japón en el año 2011, esto último siendo evidentemente explicado por el terremoto ocurrido en marzo de ese año, que incluso generó un accidente nuclear en la planta de Fukushima. 
+
+
+```{r tabla3, echo=FALSE}
+kable(Max_increase, booktabs = T, align = c("c","c","c","c","c","c","c","c"), caption = "Países y año con mayor aumento en la producción de electricidad de acuerdo a la fuente usada para producirla.") %>% kable_styling(latex_options = c("striped", "scale_down", "HOLD_position"))
+```
+
+```{r tabla4, echo=FALSE}
+kable(Max_decrease, booktabs = T, align = c("c","c","c","c","c","c","c","c"), caption = "Países y año con mayor disminución en la producción de electricidad de acuerdo a la fuente usada para producirla.") %>% kable_styling(latex_options = c("striped", "scale_down", "HOLD_position"))
+```
+
+## Análisis de la producción de energía eléctrica en países con mayores cambios en las fuentes usadas
+
+
+```{r, echo=FALSE}
+Elec_Production_8 <- Energy_stat25_complete %>% 
+  dplyr::filter(grepl('Electricity',commodity_transaction)) %>% 
+  dplyr::filter(grepl('production',commodity_transaction)) %>% 
+  dplyr::filter(country_or_area %in% 
+                 c("China", "Egypt", "France", "India","Indonesia", 
+                    "Japan", "United States")) %>%  
+  dplyr::summarise(country_or_area,commodity_transaction, year, quantity) %>% 
+  pivot_wider(names_from = commodity_transaction, values_from = quantity) %>% 
+  dplyr::rename(Gross_production = "Electricity - Gross production", 
+                net_production = "Electricity - net production", 
+                main_production = "Electricity - total production, main activity", 
+                autoproducer_production = "Electricity - total production, autoproducer", 
+                thermal_production = "Electricity - total thermal production", 
+                hydro_production = "Electricity - total hydro production", 
+                nuclear_production = "Electricity - total nuclear production", 
+                wind_production = "Electricity - total wind production", 
+                geothermal_production = "Electricity - total geothermal production", 
+                solar_production = "Electricity - total solar production", 
+                wave_production = "Electricity - total tide, wave production") %>% 
+  dplyr::mutate(perc_thermal =  (thermal_production/Gross_production)*100,
+                perc_hydro = (hydro_production/Gross_production)*100,
+                perc_nuclear = (nuclear_production/Gross_production)*100,
+                perc_wind = (wind_production/Gross_production)*100,
+                perc_geothermal = (geothermal_production/Gross_production)*100,
+                perc_solar = (solar_production/Gross_production)*100,
+                perc_wave = (wave_production/Gross_production)*100) %>% 
+  dplyr::select(country_or_area, year,contains("perc_")) %>% 
+  pivot_longer(starts_with("perc_"), 
+               names_to = "Type_production", values_to = "Percent") %>% 
+  dplyr::mutate_at(vars(Type_production), funs(str_remove_all(Type_production,"perc_"))) %>%   
+  dplyr::mutate_at(vars(Percent), funs(round(., 3)))
+```
+
+Considerando solo los países identificados mediante los análisis anteriores, y con el fin de determinar un perfil de fuentes de energía usadas para cada uno, se realizó la estimación de la contribución (porcentaje) de cada fuente en la producción de energía eléctrica, respecto a la producción total por país. El gráfico \@ref(fig:figura1) detalla el porcentaje de producción eléctrica versus los años según tipo de fuente, para los 6 países seleccionados. Se observa la tendencia mundial del mayor uso de la termoelectricidad e hidroelectricidad para casi todos los países analizados. De manera muy interesante, Francia aparece como el país que durante todo el periodo estudiado usa de manera mayoritaria la energía nuclear para la producción de electricidad, siendo mucho mayor al resto. Por su parte, en cuanto a las energías no convencionales, Indonesia aparece como un gran utilizador de la energía geotérmica de manera sostenida desde el 2001, mientras que para el resto de los países, pareciera tenerse una tendencia al aumento del uso de la energía eólica. 
+
+```{r figura1, echo=FALSE, fig.cap= "Contribución por tipo de fuente usada para generar electricidad entre los años  1990 y 2014, respecto al total producido por cada país.", fig.align='center', fig.height = 8, fig.width = 6}
+ ggplot(Elec_Production_8, aes(x = year, y = Percent, fill = Type_production)) +
+    geom_bar(stat="identity", width = 0.7) +
+   facet_wrap(~country_or_area, ncol = 2)
+```
+
+
+## Análisis de la producción de electricidad a partir de energía eólica
+
+```{r, echo=FALSE}
+Wind <- Elec_Production_8 %>% 
+  dplyr::filter(country_or_area != "Indonesia") %>% 
+  dplyr::filter(Type_production %in% 
+                  c("wind"))
+```
+
+Para examinar con mayor detalle la tendencia observada en el uso de la energía eólica, se construyó un gráfico que considera el porcentaje de electricidad producida a partir de esta fuente para cada país, como se muestra en la figura \@ref(fig:figura2). Cabe mencionar que para esta parte de los análisis Indonesia no fue considerado, al registrar valores nulos para el uso de energía eólica. A partir de las curvas descritas en este gráfico se intentó ajustar los datos a modelos que expliquen el tipo de crecimiento. A simple vista se logra observar que países como Francia, India, Japón y Estados Unidos presentarían un aparente crecimiento exponencial, mientras que para China se puede suponer un crecimiento de tipo lineal y para el caso de Egipto un crecimiento de tipo hiperbólico. 
+
+```{r figura2, echo=FALSE,fig.cap= "Porcentaje de electricidad producida a partir de energía eólica respecto al total producido por cada país seleccionado, durante los años  1990 y 2014.", fig.align='center', fig.height = 3, fig.width = 5}
+ggplot(Wind, aes(x = year, y = Percent)) + 
+  geom_point(aes(color = country_or_area))
+
+```
+
+```{r, figura3, echo=FALSE,fig.cap= "Curvas de crecimiento en el porcentaje de electricidad producida a partir de energía eólica respecto al total producido por cada país seleccionado, durante los años  1990 y 2014.", fig.align='center', fig.height = 4, fig.width = 6}
+ggplot(Wind, aes(x = year, y = Percent)) +
+  geom_point() +
+  stat_smooth(method = "lm", formula = y ~ x + I(log(x))) +
+  facet_wrap(~country_or_area, ncol = 3)
+```
+
+```{r, echo=FALSE}
+Sel_countries4 <- c("France", "India", 
+                   "Japan", "United States")
+
+Wind_fit <- Wind %>% 
+  dplyr::filter(country_or_area != "China", country_or_area != "Egypt") %>% 
+  dplyr::group_split(country_or_area) %>% 
+  map(~(lm(Percent ~  year + I(log(year)), data = .))) %>% 
+  map(~(glance(.x))) %>% 
+  map(~select(.x,r.squared,AIC)) %>% 
+  map2(.y = Sel_countries4, ~mutate(.x, country = .y)) %>% 
+  map(~mutate(.x, Model = "Crec_exp")) %>% 
+  bind_rows()
+```
+
+
+```{r, echo=FALSE}
+China <- Wind %>% 
+  dplyr::filter(country_or_area %in% c("China"))
+
+Egypt <- Wind %>% 
+  dplyr::filter(country_or_area %in% c("Egypt"))
+
+Fit_Cn <- lm(Percent ~  year, data = China)
+Fit_Eg <- lm(Percent ~  year + I(1/year), data = Egypt)
+
+Est_Cn <- glance(Fit_Cn)
+Est_Eg <- glance(Fit_Eg)
+
+Model_Cn <- Est_Cn %>% dplyr::select(r.squared,AIC) %>% mutate(country = "China", Model = "Crec_lin")
+Model_Eg <- Est_Eg %>% dplyr::select(r.squared,AIC) %>% mutate(country= "Egypt", Model = "Crec_hip")
+```
+
+Una vez ajustados los datos al modelo supuesto, se evaluó la calidad de este ajuste estimando algunos parámetros.  La tabla \@ref(tab:tabla5) incluye los dos parámetros más importantes utilizados para evaluar la calidad de las curvas estimadas para cada país; el coeficiente de determinación (“r.square”) y el criterio de información de Akaike (“AIC”). Según lo observado, los valores del coeficiente de determinación indican un relativo buen ajuste para la mayoría de los casos, teniendo valores cercanos a 1, con el detalle de Egipto e India en donde estos valores se alejan un poco más de lo ideal, indicando que los modelos explicarían de peor manera los datos reales de crecimiento en el uso de energía eólica. Por su parte, se muestran los valores de AIC para los modelos que presentaron el mínimo dentro de cada tipo de curva. Para estos se observa en la mayoría de los casos, valores negativos grandes (como para Japón y Egipto), siendo los menos óptimos para India y Estados Unidos, cuyos valores de AIC para el modelo más aceptable no presentó un valor mínimo importante, insinuando un ajuste de menor calidad, y por lo tanto explicarían de peor manera el tipo de crecimiento en el uso de energía eólica para la producción de electricidad en esos países.  
+
+```{r, echo=FALSE}
+Modelos <- bind_rows(Wind_fit, Model_Cn, Model_Eg) %>% arrange(AIC) 
+```
+
+
+```{r tabla5, echo=FALSE}
+kable(Modelos, booktabs = T, align = c("c","c","c","c"), caption = "Parámetros de calidad del ajuste a los modelos aplicados.") %>% kable_styling(latex_options = c("striped",  "HOLD_position"))
+```
+
+# Conclusiones
+
+Con los análisis de la producción de electricidad a nivel global se evidencia el predominio de las centrales termo e hidroeléctricas como fuentes principales para la generación de esta energía. El predominio de la termoelectricidad constata la dependencia que aún existe por el uso de los productos derivados del petróleo y el carbón para generar el calor necesario para la producción de electricidad en este tipo de plantas.
+
+En cuanto a los tipos de energía, se reconocieron ciertas diferencias y tendencias interesantes para los países seleccionados a analizar. Países como Francia y Japón usan la energía nuclear en un importante porcentaje, comparado con otra importante porción de países que ni siquiera consideran el uso de este tipo de energía. Por su parte, destaca el uso de otros tipos de energía no convencionales como la geotérmica en Indonesia y la energía eólica en varios de los países analizados.
+
+Dentro de esta observación se destaca el aumento del uso de la energía eólica en países como Estados Unidos, Francia y China, cuya tendencia describe un crecimiento exponencial durante los años de recopilación de los datos. La energía eólica es una fuente renovable muy ventajosa respecto a otras que están en evidente agotamiento y provocan una serie de daños al medio ambiente.  Al mantenerse esta tendencia se podría esperar que la energía eólica pueda llegar a ser incorporada como una fuente importante para la producción de electricidad, tanto en estos países como a nivel global, implicando todos los beneficios que este cambio traería para el medio ambiente, el bienestar de la población, entre otros. 
+
+
+# Referencias
